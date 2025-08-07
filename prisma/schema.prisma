@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  username  String
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id            Int      @id @default(autoincrement())
+  name          String   @unique
+  description   String? 
+  imageUrl      String?
+  status        String   @default("active")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  packages Package[]
+}
+
+model Package {
+  id            Int                @id @default(autoincrement())
+  categoryId   Int
+  name         String
+  description  String? 
+  price        Float
+  discount     Float?
+  deliveryTime String
+  status       String             @default("active")
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  category     Category           @relation(fields: [categoryId], references: [id])
+ 
+  orders       Order[]
+  features     PackageFeatures[] @relation("PackageFeatures")
+}
+
+model PackageFeatures {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+ 
+  package Package[] @relation("PackageFeatures")
+}
+
+model Order {
+  id            Int      @id @default(autoincrement())
+  packageId     Int
+  email         String
+  url           String?
+  quantity      Int
+  totalPrice    Float
+  status        String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  package Package @relation(fields: [packageId], references: [id])
+}
+
+model Review {
+  id          Int      @id @default(autoincrement())
+  rating      Int
+  comment     String 
+  firstName   String
+  lastName    String
+  position    String
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SystemInfo {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String
+  imageUrl    String
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Contact {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  subject   String
+  message   String 
+  status    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
