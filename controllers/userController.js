@@ -1,12 +1,22 @@
 const { PrismaClient } = require('../generated/prisma');
 const prisma = new PrismaClient();
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+
+// JWT Secret
+const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key';
 
 // Get all users
 const getUsers = async (req, res) => {
     try {
         const users = await prisma.user.findMany();
-        res.status(200).json(users);
+        const token = jwt.sign(
+            { userId: req.user.userId, email: req.user.email },
+            JWT_SECRET,
+            { expiresIn: '1d' }
+        );
+
+        res.status(200).json({ users, token });
     } catch (error) {
         res.status(500).json({ error: "An error occurred while fetching users." });
     }
@@ -44,6 +54,39 @@ const addUser = async (req, res) => {
     }
 };
 
+//Login JWT authentication
+const loginUser = async (req, res) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required." });
+    }
+
+    try {
+        const user = await prisma.user.findUnique({ where: { email } });
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found." });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+
+        if (!isMatch) {
+            return res.status(401).json({ error: "Invalid password." });
+        }
+
+        const token = jwt.sign(
+            { userId: user.id, email: user.email },
+            JWT_SECRET,
+            { expiresIn: '1d' }
+        );
+
+        res.status(200).json({ message: "Login successful", token });
+    } catch (error) {
+        res.status(500).json({ error: "An error occurred during login." });
+    }
+};
+
 // Get user by ID
 const getUserById = async (req, res) => {
     const userId = parseInt(req.params.id);
@@ -54,7 +97,13 @@ const getUserById = async (req, res) => {
         });
 
         if (user) {
-            res.status(200).json(user);
+            const token = jwt.sign(
+                { userId: user.id, email: user.email },
+                JWT_SECRET,
+                { expiresIn: '1d' }
+            );
+
+            res.status(200).json({ user, token });
         } else {
             res.status(404).json({ error: "User not found." });
         }
@@ -73,7 +122,13 @@ const getUserByEmail = async (req, res) => {
         });
 
         if (user) {
-            res.status(200).json(user);
+            const token = jwt.sign(
+                { userId: user.id, email: user.email },
+                JWT_SECRET,
+                { expiresIn: '1d' }
+            );
+
+            res.status(200).json({ user, token });
         } else {
             res.status(404).json({ error: "User not found." });
         }
@@ -124,10 +179,10 @@ const deleteUser = async (req, res) => {
     }
 };
 
-
 module.exports = {
     getUsers,
     addUser,
+    loginUser,     
     getUserById,
     getUserByEmail,
     updateUser,
